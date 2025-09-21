@@ -1,0 +1,67 @@
+services:
+  github-runner:
+    image: myoung34/github-runner:latest
+
+    container_name: github-runner
+
+    restart: always
+    
+    volumes:
+      - ./runner-data:/tmp/runner
+
+    cpus: 9.0
+
+    environment:
+      NIX_REMOTE: local
+      # Your GitHub repo or org. Use format: owner/repo or just org
+      REPO_URL: ${GH_REPO_URL}
+      RUNNER_NAME: treat-runner-1
+      RUNNER_WORKDIR: /tmp/runner      
+      LABELS: self-hosted,linux,x64
+      RUNNER_GROUP: Default
+      DISABLE_AUTO_UPDATE: 1
+
+      # Number of concurrent jobs to allow (default is 1)
+      RUNNER_SCOPE: repo
+      RUNNER_CAPACITY: 3
+
+      # Authentication token (see below)
+      # PAT fine grained do not work, use classic token
+      ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
+      # RUNNER_TOKEN: ${GH_RUNNER_TOKEN} 
+
+  nix-github-runner:
+    build:
+      context: ./nix-github-runner
+      dockerfile: ./Dockerfile
+      args:
+        RUNNER_VERSION: "2.328.0"
+
+    container_name: nix-github-runner
+
+    restart: always
+    
+    volumes:
+      - ./nix-runner-data:/tmp/runner
+
+    cpus: 2.0
+
+    environment:
+      NIX_REMOTE: local 
+      RUN_AS_ROOT: "false"
+      # Your GitHub repo or org. Use format: owner/repo or just org
+      REPO_URL: ${GH_REPO_URL}
+      RUNNER_NAME: treat-nix-runner-1
+      RUNNER_WORKDIR: /tmp/runner      
+      LABELS: self-hosted,linux,nix,x64
+      RUNNER_GROUP: Default
+      DISABLE_AUTO_UPDATE: 1
+
+      # Number of concurrent jobs to allow (default is 1)
+      RUNNER_SCOPE: repo
+      RUNNER_CAPACITY: 3
+
+      # Authentication token (see below)
+      # PAT fine grained do not work, use classic token
+      ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
+      # RUNNER_TOKEN: ${GH_RUNNER_TOKEN} 
