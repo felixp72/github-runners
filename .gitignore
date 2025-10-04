@@ -1,2 +1,6 @@
 nix-runner-data
 runner-data
+.*.env
+.env
+!.sample.env
+
