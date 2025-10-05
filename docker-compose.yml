@@ -3,6 +3,7 @@ services:
     image: myoung34/github-runner:latest
 
     container_name: github-runner
+    profiles: ["gh-runner"]
 
     restart: always
     
@@ -11,10 +12,12 @@ services:
 
     cpus: 9.0
 
+    env_file: ".gh-runner.env"
     environment:
       NIX_REMOTE: local
       # Your GitHub repo or org. Use format: owner/repo or just org
-      REPO_URL: ${GH_REPO_URL}
+      # This should come from the .env file
+      # REPO_URL: ${GH_REPO_URL}
       RUNNER_NAME: treat-runner-1
       RUNNER_WORKDIR: /tmp/runner      
       LABELS: self-hosted,linux,x64
@@ -27,7 +30,8 @@ services:
 
       # Authentication token (see below)
       # PAT fine grained do not work, use classic token
-      ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
+      # This should come from the .env file
+      # ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
       # RUNNER_TOKEN: ${GH_RUNNER_TOKEN} 
 
   nix-github-runner:
@@ -38,6 +42,7 @@ services:
         RUNNER_VERSION: "2.328.0"
 
     container_name: nix-github-runner
+    profiles: ["gh-runner"]
 
     restart: always
     
@@ -46,11 +51,15 @@ services:
 
     cpus: 2.0
 
+    env_file: ".gh-runner.env"
     environment:
       NIX_REMOTE: local 
       RUN_AS_ROOT: "false"
+
       # Your GitHub repo or org. Use format: owner/repo or just org
-      REPO_URL: ${GH_REPO_URL}
+      # This should come from the .env file
+      # REPO_URL: ${GH_REPO_URL}
+      
       RUNNER_NAME: treat-nix-runner-1
       RUNNER_WORKDIR: /tmp/runner      
       LABELS: self-hosted,linux,nix,x64
@@ -63,5 +72,41 @@ services:
 
       # Authentication token (see below)
       # PAT fine grained do not work, use classic token
-      ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
+      # This should come from the .env file
+      # ACCESS_TOKEN: ${GH_ACCESS_TOKEN}
       # RUNNER_TOKEN: ${GH_RUNNER_TOKEN} 
+
+  attic-server:
+    container_name: attic-server
+    profiles: ["attic"]
+
+    image: ghcr.io/zhaofengli/attic:latest
+    command: "-f /etc/attic/server.toml"
+    entrypoint: "atticd"
+
+    restart: unless-stopped
+
+    volumes:
+      - ./attic/server.toml:/etc/attic/server.toml:ro
+      - ./attic/store:/var/lib/attic
+    ports:
+      # This so that we can communicate with the server from outside the docker for convenience
+      # e.g. for creating tokens with atticadm
+      - 7070:7070 # host:container
+    depends_on:
+      - attic-db
+
+
+  attic-db:
+    image: postgres:15-alpine
+    container_name: attic-postgres
+    profiles: ["attic"]
+
+    restart: unless-stopped
+
+    env_file: ".attic.env" 
+    
+    ports:
+      - 5454:5432   # host:container
+    volumes:
+      - ./attic/data:/var/lib/postgresql/data
